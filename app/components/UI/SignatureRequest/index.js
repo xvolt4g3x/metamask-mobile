@@ -200,11 +200,11 @@ class SignatureRequest extends PureComponent {
 	);
 
 	render() {
-		const { showWarning, currentPageInformation, type } = this.props;
+		const { showWarning, currentPageInformation } = this.props;
 		return (
 			<View style={styles.wrapper}>
 				<View style={styles.header}>
-					<TransactionHeader currentPageInformation={currentPageInformation} type={type} />
+					<TransactionHeader currentPageInformation={currentPageInformation} />
 					<View style={styles.signingInformation}>
 						<Text style={styles.signText}>{strings('signature_request.signing')}</Text>
 						{showWarning ? (
