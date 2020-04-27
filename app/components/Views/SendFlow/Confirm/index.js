@@ -33,6 +33,7 @@ import { fetchBasicGasEstimates, convertApiValueToGWEI } from '../../../../util/
 import Engine from '../../../../core/Engine';
 import Logger from '../../../../util/Logger';
 import ActionModal from '../../../UI/ActionModal';
+import TransactionReviewFeeCard from '../../../UI/TransactionReview/TransactionReviewFeeCard';
 import CustomGas from '../CustomGas';
 import ErrorMessage from '../ErrorMessage';
 import TransactionsNotificationManager from '../../../../core/TransactionsNotificationManager';
@@ -79,47 +80,6 @@ const styles = StyleSheet.create({
 		fontSize: 44,
 		textAlign: 'center'
 	},
-	summaryWrapper: {
-		flexDirection: 'column',
-		borderWidth: 1,
-		borderColor: colors.grey050,
-		borderRadius: 8,
-		padding: 16,
-		marginHorizontal: 24
-	},
-	summaryRow: {
-		flexDirection: 'row',
-		justifyContent: 'space-between',
-		marginVertical: 6
-	},
-	totalCryptoRow: {
-		alignItems: 'flex-end',
-		marginTop: 8
-	},
-	textSummary: {
-		...fontStyles.normal,
-		color: colors.black,
-		fontSize: 12
-	},
-	textSummaryAmount: {
-		textTransform: 'uppercase'
-	},
-	textCrypto: {
-		...fontStyles.normal,
-		textAlign: 'right',
-		fontSize: 12,
-		textTransform: 'uppercase',
-		color: colors.grey500
-	},
-	textBold: {
-		...fontStyles.bold,
-		alignSelf: 'flex-end'
-	},
-	separator: {
-		borderBottomWidth: 1,
-		borderBottomColor: colors.grey050,
-		marginVertical: 6
-	},
 	buttonNext: {
 		flex: 1,
 		marginHorizontal: 24,
@@ -141,10 +101,6 @@ const styles = StyleSheet.create({
 	},
 	actionsWrapper: {
 		margin: 24
-	},
-	loader: {
-		backgroundColor: colors.white,
-		height: 10
 	},
 	customGasModalTitle: {
 		borderBottomColor: colors.grey100,
@@ -272,7 +228,11 @@ class Confirm extends PureComponent {
 		/**
 		 * Network provider type as mainnet
 		 */
-		providerType: PropTypes.string
+		providerType: PropTypes.string,
+		/**
+		 * ETH or fiat, depending on user setting
+		 */
+		primaryCurrency: PropTypes.string
 	};
 
 	state = {
@@ -325,6 +285,7 @@ class Confirm extends PureComponent {
 		const valueBN = hexToBN(value);
 		const transactionFeeFiat = weiToFiat(weiTransactionFee, conversionRate, currentCurrency);
 		const parsedTicker = getTicker(ticker);
+		const transactionFee = `${renderFromWei(weiTransactionFee)} ${parsedTicker}`;
 
 		if (selectedAsset.isETH) {
 			fromAccountBalance = `${renderFromWei(accounts[from].balance)} ${parsedTicker}`;
@@ -378,6 +339,7 @@ class Confirm extends PureComponent {
 			transactionValue,
 			transactionValueFiat,
 			transactionFeeFiat,
+			transactionFee,
 			transactionTo,
 			transactionTotalAmount,
 			transactionTotalAmountFiat
@@ -601,17 +563,6 @@ class Confirm extends PureComponent {
 		this.setState({ transactionConfirmed: false });
 	};
 
-	renderIfGastEstimationReady = children => {
-		const { gasEstimationReady } = this.state;
-		return !gasEstimationReady ? (
-			<View style={styles.loader}>
-				<ActivityIndicator size="small" />
-			</View>
-		) : (
-			children
-		);
-	};
-
 	render = () => {
 		const {
 			transaction: { from },
@@ -619,13 +570,14 @@ class Confirm extends PureComponent {
 			transactionFromName,
 			selectedAsset
 		} = this.props.transactionState;
-		const { showHexData } = this.props;
+		const { showHexData, primaryCurrency } = this.props;
 		const {
 			gasEstimationReady,
 			fromAccountBalance,
 			transactionValue,
 			transactionValueFiat,
 			transactionFeeFiat,
+			transactionFee,
 			transactionTo,
 			transactionTotalAmount,
 			transactionTotalAmountFiat,
@@ -674,48 +626,23 @@ class Confirm extends PureComponent {
 							</View>
 						</View>
 					)}
-
-					<View style={styles.summaryWrapper}>
-						<View style={styles.summaryRow}>
-							<Text style={styles.textSummary}>{strings('transaction.amount')}</Text>
-							<Text style={[styles.textSummary, styles.textSummaryAmount]}>{transactionValueFiat}</Text>
-						</View>
-						<View style={styles.summaryRow}>
-							<Text style={styles.textSummary}>{strings('transaction.transaction_fee')}</Text>
-							{this.renderIfGastEstimationReady(
-								<Text style={[styles.textSummary, styles.textSummaryAmount]}>{transactionFeeFiat}</Text>
-							)}
-						</View>
-						<View style={styles.separator} />
-						<View style={styles.summaryRow}>
-							<Text style={[styles.textSummary, styles.textBold]}>
-								{strings('transaction.total_amount')}
-							</Text>
-							{this.renderIfGastEstimationReady(
-								<Text style={[styles.textSummary, styles.textSummaryAmount, styles.textBold]}>
-									{transactionTotalAmountFiat}
-								</Text>
-							)}
-						</View>
-						<View style={styles.totalCryptoRow}>
-							{this.renderIfGastEstimationReady(
-								<Text style={[styles.textSummary, styles.textCrypto]}>{transactionTotalAmount}</Text>
-							)}
-						</View>
-					</View>
+					<TransactionReviewFeeCard
+						totalGasFiat={transactionFeeFiat}
+						totalGasEth={transactionFee}
+						totalFiat={transactionTotalAmountFiat}
+						fiat={transactionValueFiat}
+						totalValue={transactionTotalAmount}
+						transactionValue={transactionValue}
+						primaryCurrency={primaryCurrency}
+						gasEstimationReady={gasEstimationReady}
+						toggleCustomGasModal={this.toggleCustomGasModal}
+					/>
 					{errorMessage && (
 						<View style={styles.errorMessageWrapper}>
 							<ErrorMessage errorMessage={errorMessage} />
 						</View>
 					)}
 					<View style={styles.actionsWrapper}>
-						<TouchableOpacity
-							style={styles.actionTouchable}
-							disabled={!gasEstimationReady}
-							onPress={this.toggleCustomGasModal}
-						>
-							<Text style={styles.actionText}>{strings('transaction.adjust_transaction_fee')}</Text>
-						</TouchableOpacity>
 						{showHexData && (
 							<TouchableOpacity style={styles.actionTouchable} onPress={this.toggleHexDataModal}>
 								<Text style={styles.actionText}>{strings('transaction.hex_data')}</Text>
@@ -751,7 +678,8 @@ const mapStateToProps = state => ({
 	showHexData: state.settings.showHexData,
 	providerType: state.engine.backgroundState.NetworkController.provider.type,
 	ticker: state.engine.backgroundState.NetworkController.provider.ticker,
-	transactionState: state.newTransaction
+	transactionState: state.newTransaction,
+	primaryCurrency: state.settings.primaryCurrency
 });
 
 const mapDispatchToProps = dispatch => ({
