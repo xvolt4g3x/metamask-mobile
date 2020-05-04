@@ -1625,6 +1625,7 @@ export class BrowserTab extends PureComponent {
 			>
 				<View style={styles.urlModalContent} testID={'url-modal'}>
 					<TextInput
+						keyboardType="url"
 						ref={this.inputRef}
 						autoCapitalize="none"
 						autoCorrect={false}
